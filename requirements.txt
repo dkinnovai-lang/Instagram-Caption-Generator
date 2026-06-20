@@ -1,7 +1,5 @@
 google-generativeai
 streamlit
 Pillow
-opencv-python
+opencv-python-headless
 python-dotenv
-flask
-
