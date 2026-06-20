@@ -1,20 +1,26 @@
 import streamlit as st
 from dotenv import load_dotenv
-from core.image_handler import encode_image
-from core.video_handler import extract_frame
-from core.caption_genrator import generate_caption
 import tempfile
 import os
 
-# Load environment variables
+# Load environment variables from .env locally
 load_dotenv()
+
+# Support Streamlit Cloud secrets too
+api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+if api_key:
+    os.environ["GEMINI_API_KEY"] = api_key
+
+from core.image_handler import encode_image
+from core.video_handler import extract_frame
+from core.caption_genrator import generate_caption
 
 # Page config
 st.set_page_config(page_title="Caption Gen")
 st.title("Instagram Caption Generator")
 
 # Debug: Check API Key
-api_key_found = bool(os.getenv("GEMINI_API_KEY"))
+api_key_found = bool(api_key)
 st.write("Gemini Key Found:", api_key_found)
 
 if not api_key_found:
@@ -78,7 +84,8 @@ if file and st.button("Generate Captions"):
             result = generate_caption(
                 b64,
                 tone,
-                count
+                count,
+                api_key=api_key
             )
 
             st.success("Done! Here are your captions:")

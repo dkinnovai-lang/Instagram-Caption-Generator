@@ -1,17 +1,24 @@
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def generate_caption(
     b64_image:str,
     tone:str,
-    count:int = 3
+    count:int = 3,
+    api_key:str | None = None
     )-> str:
+    """
+    Send base64 image to Google Gemini 2.5 Flash.
+    Returns Instagram captions with hashtags.
+    """
+
+    if api_key is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is not set")
+
+    genai.configure(api_key=api_key)
     """
     Send base64 image to Google Gemini 2.5 Flash.
     Returns Instagram captions with hashtags.
