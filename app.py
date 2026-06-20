@@ -3,26 +3,23 @@ from dotenv import load_dotenv
 import tempfile
 import os
 
-# Load local .env (only for local system)
+# -----------------------------
+# LOAD ENV
+# -----------------------------
 load_dotenv()
 
-# -----------------------------
-# API KEY HANDLING (FIXED)
-# -----------------------------
 api_key = os.getenv("GEMINI_API_KEY")
 
-# fallback for Streamlit Cloud
 if not api_key:
     api_key = st.secrets.get("GEMINI_API_KEY")
 
 api_key_found = bool(api_key)
 
-# IMPORTANT: pass key via environment for backend modules
 if api_key:
     os.environ["GEMINI_API_KEY"] = api_key
 
 # -----------------------------
-# Import AFTER API setup
+# IMPORTS
 # -----------------------------
 from core.image_handler import encode_image
 from core.video_handler import extract_frame
@@ -31,7 +28,20 @@ from core.caption_genrator import generate_caption
 # -----------------------------
 # PAGE CONFIG
 # -----------------------------
-st.set_page_config(page_title="Caption Gen")
+st.set_page_config(
+    page_title="Instagram Caption Generator",
+    page_icon="📸",
+    layout="wide"
+)
+
+# -----------------------------
+# BANNER IMAGE
+# -----------------------------
+st.image(
+    "assets/banner.png",
+    use_container_width=True
+)
+
 st.title("Instagram Caption Generator")
 
 # Debug
@@ -42,13 +52,16 @@ if not api_key_found:
     st.stop()
 
 # -----------------------------
-# UPLOAD
+# FILE UPLOAD
 # -----------------------------
 file = st.file_uploader(
     "Upload Photo or Video",
     type=["jpg", "jpeg", "png", "mp4", "mov"]
 )
 
+# -----------------------------
+# CAPTION SETTINGS
+# -----------------------------
 tone = st.selectbox(
     "Choose Caption Tone",
     [
@@ -69,9 +82,9 @@ count = st.slider(
 )
 
 # -----------------------------
-# GENERATE CAPTIONS
+# GENERATE BUTTON
 # -----------------------------
-if file and st.button("Generate Captions"):
+if file and st.button("✨ Generate Captions"):
 
     try:
         with tempfile.NamedTemporaryFile(
@@ -82,7 +95,7 @@ if file and st.button("Generate Captions"):
             tmp.write(file.read())
             tmp_path = tmp.name
 
-        with st.spinner("AI is reading your media..."):
+        with st.spinner("🤖 AI is reading your media..."):
 
             ext = file.name.split(".")[-1].lower()
 
@@ -93,7 +106,7 @@ if file and st.button("Generate Captions"):
                 st.write("🖼️ Processing image...")
                 b64 = encode_image(tmp_path)
 
-            st.write("✅ Media processed successfully")
+            st.success("✅ Media processed successfully")
 
             result = generate_caption(
                 b64,
@@ -102,7 +115,7 @@ if file and st.button("Generate Captions"):
                 api_key=api_key
             )
 
-            st.success("Done! Here are your captions:")
+            st.subheader("Generated Captions")
             st.markdown(result)
 
     except Exception as e:
@@ -120,7 +133,12 @@ if file and st.button("Generate Captions"):
 # FOOTER
 # -----------------------------
 st.markdown("---")
+
 st.markdown(
-    "<p style='text-align:center;font-size:12px;color:#888;'>Made by DK_InnovAI</p>",
+    """
+    <div style='text-align:center;color:gray;'>
+        Made with ❤️ by <b>DKInnovAI</b>
+    </div>
+    """,
     unsafe_allow_html=True
 )
