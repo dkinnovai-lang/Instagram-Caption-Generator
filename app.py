@@ -3,50 +3,101 @@ from dotenv import load_dotenv
 from core.image_handler import encode_image
 from core.video_handler import extract_frame
 from core.caption_genrator import generate_caption
-import tempfile,os
+import tempfile
+import os
 
+# Load environment variables
 load_dotenv()
 
+# Page config
 st.set_page_config(page_title="Caption Gen")
-st.title("Instgram Caption Generator")
+st.title("Instagram Caption Generator")
 
-file=st.file_uploader(
+# Debug: Check API Key
+api_key_found = bool(os.getenv("GEMINI_API_KEY"))
+st.write("Gemini Key Found:", api_key_found)
+
+if not api_key_found:
+    st.error("❌ GEMINI_API_KEY not found. Check Streamlit Secrets.")
+    st.stop()
+
+# Upload file
+file = st.file_uploader(
     "Upload Photo or Video",
-    type=["jpg","png","jpeg","mp4","mov"]
-    )
+    type=["jpg", "jpeg", "png", "mp4", "mov"]
+)
 
-tone=st.selectbox("Choose Caption Tone",[
-    "Aesthetic","Funny","Motivational",
-    "Chill","Professional","Celebratory"
-])
+# Tone selection
+tone = st.selectbox(
+    "Choose Caption Tone",
+    [
+        "Aesthetic",
+        "Funny",
+        "Motivational",
+        "Chill",
+        "Professional",
+        "Celebratory"
+    ]
+)
 
-count=st.slider("How many captions?",1,5,3)
+# Caption count
+count = st.slider(
+    "How many captions?",
+    min_value=1,
+    max_value=5,
+    value=3
+)
 
+# Generate captions
 if file and st.button("Generate Captions"):
-    with tempfile.NamedTemporaryFile(
-        delete=False,
-        suffix=os.path.splitext(file.name)[1]
-        ) as tmp:
-        tmp.write(file.read())
-        tmp.flush()
-        tmp_path=tmp.name
-    
-    # File is now closed, safe to read
-    with st.spinner("AI is reading your media..."):
-        ext = file.name.split(".")[-1].lower()
-        if ext in ["mp4","mov"]:
-            b64=extract_frame(tmp_path)
-        else:
-            b64 = encode_image(tmp_path)
-        
-        result=generate_caption(b64,tone,count)
-        st.success("Done! here are your captions:")
-        st.markdown(result)
-    
-    try:
-        os.unlink(tmp_path)
-    except Exception as e:
-        print(f"Could not delete temp file: {e}")
 
+    try:
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=os.path.splitext(file.name)[1]
+        ) as tmp:
+
+            tmp.write(file.read())
+            tmp.flush()
+            tmp_path = tmp.name
+
+        with st.spinner("AI is reading your media..."):
+
+            ext = file.name.split(".")[-1].lower()
+
+            if ext in ["mp4", "mov"]:
+                st.write("📹 Processing video...")
+                b64 = extract_frame(tmp_path)
+            else:
+                st.write("🖼️ Processing image...")
+                b64 = encode_image(tmp_path)
+
+            st.write("✅ Media processed successfully")
+
+            result = generate_caption(
+                b64,
+                tone,
+                count
+            )
+
+            st.success("Done! Here are your captions:")
+            st.markdown(result)
+
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
+        st.exception(e)
+
+    finally:
+        try:
+            if 'tmp_path' in locals():
+                os.unlink(tmp_path)
+        except Exception:
+            pass
+
+# Footer
 st.markdown("---")
-st.markdown("<p style='text-align: center; font-size: 12px; color: #888;'>Made by DK_InnovAI</p>", unsafe_allow_html=True)
+st.markdown(
+    "<p style='text-align:center;font-size:12px;color:#888;'>Made by DK_InnovAI</p>",
+    unsafe_allow_html=True
+)
