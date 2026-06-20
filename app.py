@@ -3,37 +3,52 @@ from dotenv import load_dotenv
 import tempfile
 import os
 
-# Load environment variables from .env locally
+# Load local .env (only for local system)
 load_dotenv()
 
-# Support Streamlit Cloud secrets too
-api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+# -----------------------------
+# API KEY HANDLING (FIXED)
+# -----------------------------
+api_key = os.getenv("GEMINI_API_KEY")
+
+# fallback for Streamlit Cloud
+if not api_key:
+    api_key = st.secrets.get("GEMINI_API_KEY")
+
+api_key_found = bool(api_key)
+
+# IMPORTANT: pass key via environment for backend modules
 if api_key:
     os.environ["GEMINI_API_KEY"] = api_key
 
+# -----------------------------
+# Import AFTER API setup
+# -----------------------------
 from core.image_handler import encode_image
 from core.video_handler import extract_frame
 from core.caption_genrator import generate_caption
 
-# Page config
+# -----------------------------
+# PAGE CONFIG
+# -----------------------------
 st.set_page_config(page_title="Caption Gen")
 st.title("Instagram Caption Generator")
 
-# Debug: Check API Key
-api_key_found = bool(api_key)
+# Debug
 st.write("Gemini Key Found:", api_key_found)
 
 if not api_key_found:
-    st.error("❌ GEMINI_API_KEY not found. Check Streamlit Secrets.")
+    st.error("❌ GEMINI_API_KEY not found. Add it in .env or Streamlit Secrets.")
     st.stop()
 
-# Upload file
+# -----------------------------
+# UPLOAD
+# -----------------------------
 file = st.file_uploader(
     "Upload Photo or Video",
     type=["jpg", "jpeg", "png", "mp4", "mov"]
 )
 
-# Tone selection
 tone = st.selectbox(
     "Choose Caption Tone",
     [
@@ -46,7 +61,6 @@ tone = st.selectbox(
     ]
 )
 
-# Caption count
 count = st.slider(
     "How many captions?",
     min_value=1,
@@ -54,18 +68,18 @@ count = st.slider(
     value=3
 )
 
-# Generate captions
+# -----------------------------
+# GENERATE CAPTIONS
+# -----------------------------
 if file and st.button("Generate Captions"):
 
     try:
-        # Save uploaded file temporarily
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=os.path.splitext(file.name)[1]
         ) as tmp:
 
             tmp.write(file.read())
-            tmp.flush()
             tmp_path = tmp.name
 
         with st.spinner("AI is reading your media..."):
@@ -96,13 +110,15 @@ if file and st.button("Generate Captions"):
         st.exception(e)
 
     finally:
-        try:
-            if 'tmp_path' in locals():
+        if 'tmp_path' in locals():
+            try:
                 os.unlink(tmp_path)
-        except Exception:
-            pass
+            except:
+                pass
 
-# Footer
+# -----------------------------
+# FOOTER
+# -----------------------------
 st.markdown("---")
 st.markdown(
     "<p style='text-align:center;font-size:12px;color:#888;'>Made by DK_InnovAI</p>",
